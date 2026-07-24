@@ -7,10 +7,10 @@
           "rainfall": 0.842,
           "elevation": 0.125
         },
-        "HomaBay": {
-          "flood": 0.643,
-          "rainfall": 0.462,
-          "elevation": 0.706
+        "Homa Bay": {
+          "flood": 0.82,
+          "rainfall": 0.008,
+          "elevation": 0.235
         },
         "Siaya": {
           "flood": 0.007,
@@ -80,10 +80,10 @@
           "rainfall": 0.842,
           "elevation": 0.125
         },
-        "HomaBay": {
-          "flood": 0.643,
-          "rainfall": 0.462,
-          "elevation": 0.706
+        "Homa Bay": {
+          "flood": 0.82,
+          "rainfall": 0.008,
+          "elevation": 0.235
         }
       },
       "meta": {
@@ -101,10 +101,10 @@
           "rainfall": 0.842,
           "elevation": 0.125
         },
-        "HomaBay": {
-          "flood": 0.643,
-          "rainfall": 0.462,
-          "elevation": 0.706
+        "Homa Bay": {
+          "flood": 0.82,
+          "rainfall": 0.008,
+          "elevation": 0.235
         },
         "Siaya": {
           "flood": 0.007,
@@ -135,100 +135,100 @@
     "Busia,Homa Bay,Kisumu,Migori,Siaya": {
       "counties": {
         "Kisumu": {
-          "exposed_population": 1155574,
+          "exposed_population": 1713730,
           "population_normalized": 1.0
         },
-        "HomaBay": {
-          "exposed_population": 1131950,
-          "population_normalized": 0.98
+        "Homa Bay": {
+          "exposed_population": 880753,
+          "population_normalized": 0.514
         },
         "Siaya": {
-          "exposed_population": 993183,
-          "population_normalized": 0.859
+          "exposed_population": 1200641,
+          "population_normalized": 0.701
         },
         "Busia": {
-          "exposed_population": 893681,
-          "population_normalized": 0.773
+          "exposed_population": 1412499,
+          "population_normalized": 0.824
         },
         "Migori": {
-          "exposed_population": 1116436,
-          "population_normalized": 0.966
+          "exposed_population": 1065155,
+          "population_normalized": 0.622
         }
       },
       "meta": {
-        "source": "fallback",
+        "source": "worldpop",
         "year": 2020
       }
     },
     "Kisumu,Siaya": {
       "counties": {
         "Kisumu": {
-          "exposed_population": 1155574,
+          "exposed_population": 1713730,
           "population_normalized": 1.0
         },
         "Siaya": {
-          "exposed_population": 993183,
-          "population_normalized": 0.859
+          "exposed_population": 1200641,
+          "population_normalized": 0.701
         }
       },
       "meta": {
-        "source": "fallback",
+        "source": "worldpop",
         "year": 2020
       }
     },
     "Busia": {
       "counties": {
         "Busia": {
-          "exposed_population": 893681,
+          "exposed_population": 1412499,
           "population_normalized": 1.0
         }
       },
       "meta": {
-        "source": "fallback",
+        "source": "worldpop",
         "year": 2020
       }
     },
     "Homa Bay,Kisumu": {
       "counties": {
         "Kisumu": {
-          "exposed_population": 1155574,
+          "exposed_population": 1713730,
           "population_normalized": 1.0
         },
-        "HomaBay": {
-          "exposed_population": 1131950,
-          "population_normalized": 0.98
+        "Homa Bay": {
+          "exposed_population": 880753,
+          "population_normalized": 0.514
         }
       },
       "meta": {
-        "source": "fallback",
+        "source": "worldpop",
         "year": 2020
       }
     },
     "ALL": {
       "counties": {
         "Kisumu": {
-          "exposed_population": 1155574,
+          "exposed_population": 1713730,
           "population_normalized": 1.0
         },
-        "HomaBay": {
-          "exposed_population": 1131950,
-          "population_normalized": 0.98
+        "Homa Bay": {
+          "exposed_population": 880753,
+          "population_normalized": 0.514
         },
         "Siaya": {
-          "exposed_population": 993183,
-          "population_normalized": 0.859
+          "exposed_population": 1200641,
+          "population_normalized": 0.701
         },
         "Busia": {
-          "exposed_population": 893681,
-          "population_normalized": 0.773
+          "exposed_population": 1412499,
+          "population_normalized": 0.824
         },
         "Migori": {
-          "exposed_population": 1116436,
-          "population_normalized": 0.966
+          "exposed_population": 1065155,
+          "population_normalized": 0.622
         }
       },
       "meta": {
-        "source": "fallback",
+        "source": "worldpop",
         "year": 2020
       }
     }

@@ -99,6 +99,19 @@ TOOL_DESCRIPTIONS: dict[str, dict[str, Any]] = {
             "counties": "list[str] (optional) - county names; empty means the Lake Victoria basin (Kisumu, Homa Bay, Siaya, Busia, Migori)",
         },
     },
+    "get_subcounty_risk": {
+        "description": (
+            "Rank SUB-COUNTIES (constituencies) by flood risk within the Lake "
+            "Victoria basin — e.g. Nyando, Nyakach, Budalangi, Rarieda, Mbita. "
+            "USE THIS whenever the user asks about sub-counties, "
+            "constituencies, divisions, wards, villages, towns, wetlands or "
+            "floodplains. Never answer those questions with county names."
+        ),
+        "parameters": {
+            "subcounties": "list[str] (optional) - sub-county names; empty means all basin sub-counties",
+            "counties": "list[str] (optional) - restrict to sub-counties within these counties",
+        },
+    },
     "compute_risk_score": {
         "description": (
             "Combine flood, rainfall, population exposure and elevation into a "
@@ -184,8 +197,19 @@ def build_system_prompt() -> str:
         "4. Only include steps that are necessary for THIS question. A simple "
         "factual/context question may need only search_knowledge.\n"
         "5. Pass parameters explicitly. If the user names specific counties, "
-        "put them in the 'counties' parameter; otherwise omit it to mean all "
-        "counties.\n\n"
+        "put them in the 'counties' parameter; otherwise omit it, which means "
+        "the five Lake Victoria basin counties.\n"
+        "6. Lake Victoria is the centre of this study. Unless the user "
+        "explicitly asks about the rest of Kenya, keep analysis in the basin.\n"
+        "7. ADMINISTRATIVE LEVEL MATTERS — this is critical. Kisumu, Busia, "
+        "Siaya, Homa Bay and Migori are COUNTIES, not sub-counties. "
+        "Sub-counties are units like Nyando, Nyakach, Seme, Muhoroni, "
+        "Budalangi, Funyula, Rarieda, Bondo, Mbita, Nyatike. If the user asks "
+        "about sub-counties, constituencies, divisions, wards, villages, "
+        "towns, wetlands or floodplains, you MUST call get_subcounty_risk — "
+        "NEVER answer such a question with county names from "
+        "compute_risk_score. Use compute_risk_score only when the question is "
+        "about counties or does not specify a level.\n\n"
         "OUTPUT FORMAT (STRICT):\n"
         "Respond with a SINGLE JSON object and nothing else. No markdown, no "
         "code fences, no commentary. The schema is:\n"

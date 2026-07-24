@@ -97,6 +97,14 @@ def _extract_knowledge(collected: dict[str, Any]) -> list[dict[str, Any]]:
     return cleaned
 
 
+def _extract_subcounty(collected: dict[str, Any]) -> dict[str, Any]:
+    """Pull the sub-county ranking and its metadata, if the tool ran."""
+    block = _as_single(collected.get("get_subcounty_risk"))
+    if not isinstance(block, dict):
+        return {}
+    return block
+
+
 def _extract_ranking(collected: dict[str, Any]) -> list[dict[str, Any]]:
     """Pull the ranked county risk scores from the risk-scoring tool output."""
     block = _as_single(collected.get("compute_risk_score"))
@@ -148,6 +156,15 @@ FUSION_SYSTEM_PROMPT = (
     "6. End with 2-4 concrete, actionable recommendations for decision-makers.\n"
     "7. Be concise and direct. Use short paragraphs or a short list. Avoid "
     "filler.\n"
+    "8. ADMINISTRATIVE LEVEL: answer at the level the user asked about. "
+    "Kisumu, Busia, Siaya, Homa Bay and Migori are COUNTIES. Nyando, Nyakach, "
+    "Seme, Budalangi, Rarieda, Mbita are SUB-COUNTIES. If the user asked for "
+    "sub-counties and sub-county data is present, name sub-counties — never "
+    "substitute county names. If the requested level is unavailable, say so "
+    "explicitly and state the level you are actually reporting.\n"
+    "9. CITE DIVERSELY. Draw on every distinct source provided, not one "
+    "document. When several sources support a point, cite them together, and "
+    "cite the satellite/population data as evidence in its own right.\n"
 )
 
 
@@ -160,6 +177,27 @@ def _build_context_block(
 ) -> str:
     """Render all collected data into a compact text context for the model."""
     parts: list[str] = [f"USER QUESTION:\n{question}\n"]
+
+    # Administrative level the user asked about, and what data we actually have.
+    try:
+        from ..utils import admin_levels
+
+        level = admin_levels.detect_admin_level(question)
+        parts.append(
+            "ADMINISTRATIVE LEVEL REQUESTED: " + level + "\n"
+            + admin_levels.resolution_note(level)
+        )
+    except Exception:
+        pass
+
+    sub = _extract_subcounty(collected)
+    if sub.get("ranking"):
+        parts.append(
+            "RANKED SUB-COUNTY RISK SCORES (use THESE for sub-county "
+            "questions; these are sub-counties, NOT counties):\n"
+            + json.dumps(sub["ranking"][:20], indent=2)
+            + "\nMETHOD NOTES: " + json.dumps(sub.get("meta", {}), indent=2)
+        )
 
     if ranking:
         parts.append(

@@ -111,7 +111,7 @@ def build_default_registry(config: dict[str, Any] | None = None) -> dict[str, To
     Each wrapper adapts the underlying tool function to the uniform
     ``fn(parameters: dict) -> dict`` contract.
     """
-    from ..tools import cache, knowledge, risk_score
+    from ..tools import cache, knowledge, risk_score, subcounty_risk
 
     def _knowledge_tool(params: dict[str, Any]) -> dict[str, Any]:
         query = params.get("query", "")
@@ -147,8 +147,17 @@ def build_default_registry(config: dict[str, Any] | None = None) -> dict[str, To
             population_data=pop,
         )
 
+    def _subcounty_tool(params: dict[str, Any]) -> dict[str, Any]:
+        # Correct-resolution answers for sub-county / ward / village questions.
+        return subcounty_risk.compute_subcounty_risk(
+            subcounties=params.get("subcounties"),
+            counties=params.get("counties"),
+            config=config,
+        )
+
     return {
         "search_knowledge": _knowledge_tool,
+        "get_subcounty_risk": _subcounty_tool,
         "get_earth_engine_layers": _earth_engine_tool,
         "get_population_exposure": _population_tool,
         "compute_risk_score": _risk_tool,

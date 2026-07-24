@@ -57,7 +57,7 @@ EXAMPLE_QUESTIONS = [
     "Which counties around Lake Victoria face the highest flood risk, and who is most exposed?",
     "How exposed are the Kano plains and Nyando basin in Kisumu to flooding?",
     "Compare flood risk between Kisumu and Siaya counties.",
-    "Is Budalangi in Busia still one of the most flood-prone areas?",
+    "Which sub-counties around Lake Victoria face the highest flood risk?",
 ]
 
 
@@ -149,12 +149,24 @@ def render_ranking_table(result: Any) -> Any | None:
     return ranking
 
 
-def render_map(ranking: list[dict[str, Any]], config: dict[str, Any]) -> None:
-    """Render the interactive folium risk map, if it can be built."""
+def render_map(
+    ranking: list[dict[str, Any]],
+    config: dict[str, Any],
+    sub_ranking: list[dict[str, Any]] | None = None,
+) -> None:
+    """
+    Render the rich interactive map: counties, sub-counties, towns and named
+    flood features, each toggleable, with click popups.
+    """
     st.subheader("Risk map")
+    st.caption(
+        "Toggle layers using the control at the top right. Click any "
+        "sub-county or marker for details."
+    )
     try:
-        top_n = int(config.get("ui", {}).get("map_top_n", 15)) if config else 15
-        risk_map = viz.build_risk_map(ranking, top_n=top_n, config=config)
+        risk_map = viz.build_rich_map(
+            ranking=ranking, sub_ranking=sub_ranking, config=config
+        )
         if risk_map is None:
             st.warning(
                 "**Map could not be drawn.** The most likely cause is that "
@@ -164,7 +176,7 @@ def render_map(ranking: list[dict[str, Any]], config: dict[str, Any]) -> None:
             return
         # Render the folium map via its HTML representation.
         html = risk_map._repr_html_()  # folium Map supports this
-        st.components.v1.html(html, height=520, scrolling=False)
+        st.components.v1.html(html, height=620, scrolling=False)
     except Exception as exc:
         logger.warning("Map rendering failed: %s", exc)
         st.info(f"Map could not be rendered: {exc}")
@@ -306,12 +318,39 @@ def main() -> None:
         render_answer(result)
 
         ranking = render_ranking_table(result)
-        if ranking:
+
+        # Sub-county results (when the user asked about sub-counties).
+        sub_block = result.collected.get("get_subcounty_risk", {})
+        sub_ranking = sub_block.get("ranking") if isinstance(sub_block, dict) else None
+        if sub_ranking:
+            st.subheader("Sub-county risk ranking")
+            meta = sub_block.get("meta", {})
+            if meta.get("population_method"):
+                st.caption(f"Method: {meta['population_method']}")
+            import pandas as _pd
+
+            st.dataframe(
+                _pd.DataFrame([
+                    {
+                        "sub-county": r["subcounty"],
+                        "county": r["county"],
+                        "risk_score": r["risk_score"],
+                        "exposed_population": r["exposed_population"],
+                        "flood features": ", ".join(r.get("flood_features", [])),
+                    }
+                    for r in sub_ranking
+                ]),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        if ranking or sub_ranking:
             map_col, chart_col = st.columns([3, 2])
             with map_col:
-                render_map(ranking, config)
+                render_map(ranking or [], config, sub_ranking=sub_ranking)
             with chart_col:
-                render_bar_chart(ranking, config)
+                if ranking:
+                    render_bar_chart(ranking, config)
 
         render_execution_log(result)
     else:

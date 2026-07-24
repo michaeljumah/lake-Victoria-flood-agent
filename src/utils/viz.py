@@ -27,6 +27,7 @@ County geometries come from utils.geo so this module stays presentation-only.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from . import geo
@@ -395,3 +396,232 @@ if __name__ == "__main__":  # pragma: no cover
     print("Bar chart built:", fig is not None)
     m = build_risk_map(result["ranking"], top_n=5)
     print("Risk map built:", m is not None)
+
+
+# ===========================================================================
+# RICH LAKE VICTORIA MAP
+# ---------------------------------------------------------------------------
+# The plain county choropleth was not enough for the workshop: users need to
+# see WHERE the risk is — sub-counties, towns, and named flood features — and
+# click for detail. This section adds those layers on top of the existing
+# county map, with a LayerControl so each can be toggled.
+# ===========================================================================
+
+def _add_subcounty_layer(map_obj: Any, sub_ranking: list[dict[str, Any]]) -> int:
+    """
+    Draw sub-county polygons coloured by risk, with click popups.
+
+    Each popup shows the sub-county, its parent county, risk score, component
+    breakdown, exposed population and any named flood features.
+    """
+    try:
+        import folium  # type: ignore
+    except ImportError:
+        return 0
+
+    from . import admin_levels
+
+    group = folium.FeatureGroup(name="Sub-counties (risk)", show=True)
+    drawn = 0
+    for row in sub_ranking:
+        name = row.get("subcounty")
+        if not name:
+            continue
+        geometry = admin_levels.get_subcounty_geometry(name)
+        if geometry is None:
+            continue
+        score = float(row.get("risk_score", 0.0))
+        comp = row.get("components", {})
+        feats = row.get("flood_features") or []
+        popup_html = (
+            f"<div style='font-family:sans-serif;min-width:230px'>"
+            f"<b style='font-size:14px'>{name}</b><br>"
+            f"<span style='color:#666'>{row.get('county','')} County — sub-county</span><hr style='margin:4px 0'>"
+            f"<b>Risk score: {score:.3f}</b><br>"
+            f"Exposed population: ~{int(row.get('exposed_population',0)):,}<br>"
+            f"<hr style='margin:4px 0'>"
+            f"Flood signal: {comp.get('flood','-')}<br>"
+            f"Rainfall: {comp.get('rainfall','-')}<br>"
+            f"Elevation vulnerability: {comp.get('elevation','-')}<br>"
+            + (f"<hr style='margin:4px 0'><b>Flood features:</b><br>{'<br>'.join(feats)}"
+               if feats else "")
+            + "</div>"
+        )
+        try:
+            folium.GeoJson(
+                data=geometry.__geo_interface__,
+                style_function=(lambda _f, c=_color_for_score(score): {
+                    "fillColor": c, "color": "#222", "weight": 1, "fillOpacity": 0.6,
+                }),
+                highlight_function=lambda _f: {"weight": 3, "color": "#000"},
+                tooltip=f"{name} — risk {score:.2f}",
+                popup=folium.Popup(popup_html, max_width=300),
+            ).add_to(group)
+            drawn += 1
+        except Exception as exc:
+            logger.debug("Could not draw sub-county %s: %s", name, exc)
+    group.add_to(map_obj)
+    return drawn
+
+
+def _add_settlements_layer(map_obj: Any) -> int:
+    """Plot towns and settlements from data/settlements.geojson."""
+    try:
+        import folium  # type: ignore
+        import json as _json
+    except ImportError:
+        return 0
+
+    here = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.abspath(os.path.join(here, "..", "..", "data", "settlements.geojson"))
+    if not os.path.exists(path):
+        return 0
+
+    from . import lake_victoria
+
+    basin = {c.lower().replace(" ", "") for c in lake_victoria.BASIN_COUNTIES}
+    group = folium.FeatureGroup(name="Towns & settlements", show=True)
+    drawn = 0
+    try:
+        data = _json.load(open(path, encoding="utf-8"))
+        for feat in data.get("features", []):
+            props = feat.get("properties", {})
+            county = str(props.get("county", "")).lower().replace(" ", "")
+            if county not in basin:
+                continue
+            lon, lat = feat["geometry"]["coordinates"][:2]
+            pop = props.get("population")
+            folium.CircleMarker(
+                location=[lat, lon],
+                radius=6,
+                color="#1a73e8",
+                fill=True,
+                fill_color="#1a73e8",
+                fill_opacity=0.9,
+                tooltip=f"{props.get('name')} ({props.get('county')})",
+                popup=folium.Popup(
+                    f"<b>{props.get('name')}</b><br>{props.get('county')} County"
+                    + (f"<br>Population: ~{int(pop):,}" if pop else ""),
+                    max_width=220,
+                ),
+            ).add_to(group)
+            drawn += 1
+    except Exception as exc:
+        logger.debug("Settlement layer failed: %s", exc)
+    group.add_to(map_obj)
+    return drawn
+
+
+def _add_flood_features_layer(map_obj: Any) -> int:
+    """
+    Mark named flood features — Kano Plains, Nyando Basin, Budalangi, Yala
+    Swamp, Winam Gulf shoreline — at the centroid of their sub-counties.
+    """
+    try:
+        import folium  # type: ignore
+    except ImportError:
+        return 0
+
+    from . import admin_levels
+
+    group = folium.FeatureGroup(name="Flood features (wetlands, plains, basins)", show=True)
+    drawn = 0
+    for feature_name, info in admin_levels.FLOOD_FEATURES.items():
+        for sc in info["subcounties"]:
+            geometry = admin_levels.get_subcounty_geometry(sc)
+            c = geo.centroid(geometry)
+            if c is None:
+                continue
+            lon, lat = c
+            try:
+                folium.Marker(
+                    location=[lat, lon],
+                    tooltip=f"{feature_name} ({sc})",
+                    popup=folium.Popup(
+                        f"<b>{feature_name}</b><br><i>{sc}, "
+                        f"{info['county']} County</i><br><br>{info['description']}",
+                        max_width=280,
+                    ),
+                    icon=folium.Icon(color="darkblue", icon="tint", prefix="fa"),
+                ).add_to(group)
+                drawn += 1
+                break  # one marker per feature is enough
+            except Exception as exc:
+                logger.debug("Flood feature marker failed (%s): %s", feature_name, exc)
+    group.add_to(map_obj)
+    return drawn
+
+
+def build_rich_map(
+    ranking: list[dict[str, Any]] | None = None,
+    sub_ranking: list[dict[str, Any]] | None = None,
+    config: dict[str, Any] | None = None,
+) -> Any | None:
+    """
+    Build the full Lake Victoria workshop map.
+
+    Layers (each toggleable):
+      - County risk choropleth (if a county ranking is supplied)
+      - Sub-county risk choropleth with click popups (if a sub-county ranking is supplied)
+      - Towns & settlements
+      - Named flood features (Kano Plains, Budalangi, Yala Swamp, ...)
+
+    Returns a folium Map, or None if no mapping library is available.
+    """
+    map_obj = _new_map()
+    if map_obj is None:
+        return None
+
+    try:
+        import folium  # type: ignore
+    except ImportError:
+        return map_obj
+
+    fit_names: set[str] = set()
+
+    if ranking:
+        lookup = _ranking_to_lookup(ranking)
+        county_group = folium.FeatureGroup(name="Counties (risk)", show=not sub_ranking)
+        for name, row in lookup.items():
+            geometry = geo.get_county_geometry(name)
+            if geometry is None:
+                continue
+            score = float(row.get("risk_score", 0.0))
+            try:
+                folium.GeoJson(
+                    data=geometry.__geo_interface__,
+                    style_function=(lambda _f, c=_color_for_score(score): {
+                        "fillColor": c, "color": "#333", "weight": 2,
+                        "fillOpacity": 0.35,
+                    }),
+                    tooltip=(
+                        f"{name} County — risk {score:.2f}, "
+                        f"~{int(row.get('exposed_population', 0)):,} exposed"
+                    ),
+                ).add_to(county_group)
+                fit_names.add(name)
+            except Exception as exc:
+                logger.debug("County layer failed for %s: %s", name, exc)
+        county_group.add_to(map_obj)
+
+    n_sub = _add_subcounty_layer(map_obj, sub_ranking or [])
+    n_towns = _add_settlements_layer(map_obj)
+    n_feats = _add_flood_features_layer(map_obj)
+    logger.info(
+        "Rich map layers — sub-counties: %d, towns: %d, flood features: %d",
+        n_sub, n_towns, n_feats,
+    )
+
+    try:
+        folium.LayerControl(collapsed=False).add_to(map_obj)
+    except Exception as exc:
+        logger.debug("LayerControl failed: %s", exc)
+
+    if fit_names:
+        _fit_to_counties(map_obj, fit_names)
+    else:
+        from . import lake_victoria
+
+        _fit_to_counties(map_obj, set(lake_victoria.BASIN_COUNTIES))
+
+    return map_obj
