@@ -29,7 +29,7 @@ still runs using deterministic fallbacks, so it never hard-fails in a demo.
 
 ---
 
-## **Study area — Lake Victoria at the centre**
+## **Study area - Lake Victoria at the centre**
 
 Lake Victoria is the **centre** of this study. The five Kenyan counties on its
 shore provide the administrative boundaries results are reported against:
@@ -131,7 +131,7 @@ GOOGLE_API_KEY=your-gemini-api-key
 EE_PROJECT_ID=your-earthengine-project-id
 ```
 
-Both are optional — without them the agent runs in deterministic fallback mode —
+Both are optional - without them the agent runs in deterministic fallback mode -
 but you need them for live Gemini reasoning and real satellite data.
 
 ### **Gemini setup**
@@ -158,7 +158,7 @@ notebook).
 ### **County boundaries**
 
 `data/kenya_counties.geojson` (all 47 counties) ships with the repo as a Voronoi
-approximation — good enough for choropleths and region clipping. For
+approximation - good enough for choropleths and region clipping. For
 publication-grade boundaries, replace it with an official **GADM** or **HDX**
 Kenya counties file (keep a `COUNTY` or `shapeName` property); everything else
 works unchanged.
@@ -185,7 +185,7 @@ Open `demo.ipynb` locally or in Colab and run the cells top to bottom:
 5. Display the ranked results
 6. Visualize the risk map
 
-The notebook is a thin runner — all logic lives in `src/`, so the notebook just
+The notebook is a thin runner - all logic lives in `src/`, so the notebook just
 imports and calls it.
 
 
@@ -220,4 +220,4 @@ the Kenya Meteorological Department and the National Drought Management Authorit
 ## **License**
 
 Source code: **MIT** (see `LICENSE`). Knowledge-base documents retain their own
-licenses — see `knowledge/sources.md`.
+licenses - see `knowledge/sources.md`.
