@@ -107,7 +107,25 @@ def risk_dataframe(ranking: list[dict[str, Any]]) -> Any:
 # ---------------------------------------------------------------------------
 # Maps
 # ---------------------------------------------------------------------------
-def _new_map(center: tuple[float, float] = (0.5, 37.8), zoom: int = 6) -> Any | None:
+# ---------------------------------------------------------------------------
+# Map centring — Lake Victoria (Winam Gulf) is the centre of this study.
+# ---------------------------------------------------------------------------
+# Exact coordinates (WGS84 decimal degrees), not estimates:
+#   Winam Gulf (GeoNames ID 178104): -0.26721, 34.5336
+#     the Kenyan arm of Lake Victoria that all five basin counties surround.
+#   Kisumu port:      -0.091702, 34.767956
+#   Homa Bay town:    -0.517,    34.450
+# Winam Gulf is used as the default centre because it is the geographic heart
+# of the study area, with Kisumu on its northeastern shore and Homa Bay on the
+# southern shore.
+LAKE_VICTORIA_CENTER: tuple[float, float] = (-0.26721, 34.5336)  # (lat, lon)
+DEFAULT_ZOOM: int = 8
+
+
+def _new_map(
+    center: tuple[float, float] = LAKE_VICTORIA_CENTER,
+    zoom: int = DEFAULT_ZOOM,
+) -> Any | None:
     """
     Create a base interactive map.
 
@@ -122,8 +140,13 @@ def _new_map(center: tuple[float, float] = (0.5, 37.8), zoom: int = 6) -> Any | 
         import folium  # type: ignore
 
         return folium.Map(location=list(center), zoom_start=zoom)
+    except ImportError:
+        logger.error(
+            "folium is NOT installed — the risk map cannot be drawn. "
+            "Fix with:  pip install folium"
+        )
     except Exception as exc:
-        logger.debug("folium unavailable (%s); considering geemap.", exc)
+        logger.error("folium failed to create a map (%s).", exc)
 
     # 2. geemap only if Earth Engine is already initialized (never trigger auth).
     try:
@@ -135,8 +158,11 @@ def _new_map(center: tuple[float, float] = (0.5, 37.8), zoom: int = 6) -> Any | 
             return geemap.Map(center=center, zoom=zoom)
         logger.debug("Earth Engine not initialized; skipping geemap to avoid auth.")
     except Exception as exc:
-        logger.warning("No mapping library available (%s).", exc)
+        logger.error("No mapping library available (%s).", exc)
 
+    logger.error(
+        "Map could not be created. Install folium:  pip install folium"
+    )
     return None
 
 
@@ -190,6 +216,32 @@ def _add_county_polygons(
     return drawn
 
 
+def _fit_to_counties(map_obj: Any, county_names: set[str]) -> None:
+    """
+    Zoom the map to the bounding box of the given counties.
+
+    Keeps Lake Victoria and the basin counties filling the frame regardless of
+    which subset was scored. Silently does nothing if bounds can't be computed.
+    """
+    try:
+        lats: list[float] = []
+        lons: list[float] = []
+        for name in county_names:
+            geometry = geo.get_county_geometry(name)
+            bounds = geo.bounding_box(geometry)
+            if bounds is None:
+                continue
+            minx, miny, maxx, maxy = bounds
+            lons.extend([minx, maxx])
+            lats.extend([miny, maxy])
+        if not lats or not lons:
+            return
+        # folium expects [[south, west], [north, east]]
+        map_obj.fit_bounds([[min(lats), min(lons)], [max(lats), max(lons)]])
+    except Exception as exc:
+        logger.debug("Could not fit map bounds: %s", exc)
+
+
 def build_risk_map(
     ranking: list[dict[str, Any]],
     top_n: int | None = None,
@@ -227,6 +279,10 @@ def build_risk_map(
 
     drawn = _add_county_polygons(map_obj, lookup, only=only)
     logger.info("Risk map drew %d counties.", drawn)
+
+    # Fit the view to the counties actually drawn, so the Lake Victoria basin
+    # fills the map instead of sitting in a corner.
+    _fit_to_counties(map_obj, only if only else set(lookup.keys()))
     return map_obj
 
 

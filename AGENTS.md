@@ -27,7 +27,7 @@ Given a question about flood risk in the Lake Victoria basin, the agent:
 4. Fuses everything into a ranked answer with explanations, a confidence level,
    and concrete recommendations.
 
-The agent is an **open replica of the I/O 2026 Geospatial Reasoning pattern** —
+The agent is an **open replica of the I/O 2026 Geospatial Reasoning pattern** -
 it is not Google's gated agent, and it runs on the free Earth Engine tier.
 
 ## Available tools
@@ -49,7 +49,7 @@ self-describing, structured function (WebMCP-compatible by design).
   normally the **last** step when a ranking or risk judgement is required.
 - Call `search_knowledge` whenever Kenyan context, history, or documentation
   would strengthen or ground the answer.
-- Include only the steps necessary for the specific question — a pure context
+- Include only the steps necessary for the specific question - a pure context
   question may need only `search_knowledge`.
 - When the user names specific counties, pass them in the `counties` parameter;
   omit it to mean the five Lake Victoria basin counties.
@@ -57,7 +57,7 @@ self-describing, structured function (WebMCP-compatible by design).
 ## Reasoning rules
 
 1. **Ground every claim.** Base factual statements on tool outputs or retrieved
-   passages — never on unsupported recall. Do not invent county names or numbers.
+   passages - never on unsupported recall. Do not invent county names or numbers.
 2. **Attribute sources.** When using a retrieved passage, name its source.
 3. **Lead with the ranking.** Present the most relevant counties first, then
    explain *why* each ranks where it does (flood, rainfall, population,
@@ -74,7 +74,7 @@ self-describing, structured function (WebMCP-compatible by design).
 - **Decision-support, not emergency dispatch.** Outputs inform planning; they do
   not replace official early-warning systems or on-the-ground assessment.
 - **No false precision.** When running on fallback data (no Earth Engine / no
-  API key), say so — do not present fallback values as measured observations.
+  API key), say so - do not present fallback values as measured observations.
 - **Respect data licenses.** Only redistribute knowledge-base documents that are
   licensed for it (see `knowledge/sources.md`).
 - **Lake masking.** Lake Victoria is permanent open water and would otherwise
@@ -89,8 +89,8 @@ self-describing, structured function (WebMCP-compatible by design).
 
 A typical answer contains, in order:
 
-1. **Ranked counties** — highest risk first, with score and exposed population.
-2. **Explanations** — why the top counties rank as they do, citing contributing
+1. **Ranked counties** - highest risk first, with score and exposed population.
+2. **Explanations** - why the top counties rank as they do, citing contributing
    factors and any retrieved sources.
-3. **Confidence** — high / medium / low, with a note on any missing data.
-4. **Recommendations** — 2–4 concrete, actionable next steps for decision-makers.
+3. **Confidence** - high / medium / low, with a note on any missing data.
+4. **Recommendations** - 2–4 concrete, actionable next steps for decision-makers.

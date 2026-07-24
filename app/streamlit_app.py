@@ -156,9 +156,10 @@ def render_map(ranking: list[dict[str, Any]], config: dict[str, Any]) -> None:
         top_n = int(config.get("ui", {}).get("map_top_n", 15)) if config else 15
         risk_map = viz.build_risk_map(ranking, top_n=top_n, config=config)
         if risk_map is None:
-            st.info(
-                "Map unavailable in this environment "
-                "(mapping library or county boundaries missing)."
+            st.warning(
+                "**Map could not be drawn.** The most likely cause is that "
+                "`folium` is not installed in this environment.\n\n"
+                "Fix it by running:  `pip install folium`  then restart the app."
             )
             return
         # Render the folium map via its HTML representation.
