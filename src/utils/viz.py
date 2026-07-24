@@ -617,6 +617,27 @@ def build_rich_map(
     except Exception as exc:
         logger.debug("LayerControl failed: %s", exc)
 
+    # Fullscreen button (expand icon, top-left) so the map can fill the screen.
+    try:
+        from folium.plugins import Fullscreen  # type: ignore
+
+        Fullscreen(
+            position="topleft",
+            title="Expand to fullscreen",
+            title_cancel="Exit fullscreen",
+            force_separate_button=True,
+        ).add_to(map_obj)
+    except Exception as exc:
+        logger.debug("Fullscreen control unavailable: %s", exc)
+
+    # Mouse-position readout so users can see coordinates as they hover.
+    try:
+        from folium.plugins import MousePosition  # type: ignore
+
+        MousePosition(position="bottomleft", prefix="Lat/Lon:").add_to(map_obj)
+    except Exception as exc:
+        logger.debug("MousePosition unavailable: %s", exc)
+
     if fit_names:
         _fit_to_counties(map_obj, fit_names)
     else:
@@ -625,3 +646,65 @@ def build_rich_map(
         _fit_to_counties(map_obj, set(lake_victoria.BASIN_COUNTIES))
 
     return map_obj
+
+
+def build_subcounty_bar_chart(
+    sub_ranking: list[dict[str, Any]],
+    top_n: int = 5,
+) -> Any | None:
+    """
+    Horizontal bar chart of the top_n SUB-COUNTIES by flood-risk score.
+
+    Mirrors build_risk_bar_chart but labels each bar with the sub-county and
+    its parent county, so a sub-county answer always gets a matching chart.
+    Returns a matplotlib Figure, or None if matplotlib is unavailable.
+    """
+    if not sub_ranking:
+        return None
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")  # headless-safe for Streamlit
+        import matplotlib.pyplot as plt
+    except ImportError:
+        logger.warning("matplotlib unavailable; cannot build sub-county chart.")
+        return None
+
+    top = sub_ranking[: max(1, top_n)]
+    labels = [
+        f"{r.get('subcounty', '?')}\n({r.get('county', '')})" for r in top
+    ][::-1]
+    scores = [float(r.get("risk_score", 0.0)) for r in top][::-1]
+    colors = [_color_for_score(s) for s in scores]
+
+    fig, ax = plt.subplots(figsize=(8, max(3, 0.75 * len(top))))
+    ax.barh(labels, scores, color=colors, edgecolor="#333333")
+    ax.set_xlabel("Flood-risk score (0-1)")
+    ax.set_xlim(0, 1)
+    ax.set_title(f"Top {len(top)} sub-counties by flood-risk score")
+    for i, score in enumerate(scores):
+        ax.text(score + 0.01, i, f"{score:.2f}", va="center", fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
+def save_map_html(map_obj: Any, filename: str = "lake_victoria_map.html") -> str | None:
+    """
+    Save a folium map to a standalone HTML file and return its path.
+
+    Used by the Streamlit app to offer a "open full map in a new tab" download,
+    which gives users an unconstrained, full-window version of the map.
+    """
+    if map_obj is None:
+        return None
+    try:
+        here = os.path.dirname(os.path.abspath(__file__))
+        root = os.path.abspath(os.path.join(here, "..", ".."))
+        out_dir = os.path.join(root, "outputs")
+        os.makedirs(out_dir, exist_ok=True)
+        path = os.path.join(out_dir, filename)
+        map_obj.save(path)
+        return path
+    except Exception as exc:
+        logger.warning("Could not save map HTML: %s", exc)
+        return None

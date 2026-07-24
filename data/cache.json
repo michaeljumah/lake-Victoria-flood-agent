@@ -3,33 +3,33 @@
     "Busia,Homa Bay,Kisumu,Migori,Siaya|def|def": {
       "counties": {
         "Kisumu": {
-          "flood": 0.879,
-          "rainfall": 0.842,
-          "elevation": 0.125
+          "flood": 0.383,
+          "rainfall": 1.0,
+          "elevation": 0.384
         },
-        "Homa Bay": {
-          "flood": 0.82,
-          "rainfall": 0.008,
-          "elevation": 0.235
+        "HomaBay": {
+          "flood": 0.358,
+          "rainfall": 1.0,
+          "elevation": 0.373
         },
         "Siaya": {
-          "flood": 0.007,
-          "rainfall": 0.574,
-          "elevation": 0.296
+          "flood": 0.348,
+          "rainfall": 1.0,
+          "elevation": 0.394
         },
         "Busia": {
-          "flood": 0.71,
-          "rainfall": 0.532,
-          "elevation": 0.582
+          "flood": 0.355,
+          "rainfall": 1.0,
+          "elevation": 0.392
         },
         "Migori": {
-          "flood": 0.436,
-          "rainfall": 0.346,
-          "elevation": 0.462
+          "flood": 0.366,
+          "rainfall": 0.949,
+          "elevation": 0.327
         }
       },
       "meta": {
-        "source": "fallback",
+        "source": "earth-engine",
         "dates": [
           "2026-03-01",
           "2026-05-31"
@@ -39,18 +39,18 @@
     "Kisumu,Siaya|def|def": {
       "counties": {
         "Kisumu": {
-          "flood": 0.879,
-          "rainfall": 0.842,
-          "elevation": 0.125
+          "flood": 0.383,
+          "rainfall": 1.0,
+          "elevation": 0.384
         },
         "Siaya": {
-          "flood": 0.007,
-          "rainfall": 0.574,
-          "elevation": 0.296
+          "flood": 0.348,
+          "rainfall": 1.0,
+          "elevation": 0.394
         }
       },
       "meta": {
-        "source": "fallback",
+        "source": "earth-engine",
         "dates": [
           "2026-03-01",
           "2026-05-31"
@@ -60,13 +60,13 @@
     "Busia|def|def": {
       "counties": {
         "Busia": {
-          "flood": 0.71,
-          "rainfall": 0.532,
-          "elevation": 0.582
+          "flood": 0.355,
+          "rainfall": 1.0,
+          "elevation": 0.392
         }
       },
       "meta": {
-        "source": "fallback",
+        "source": "earth-engine",
         "dates": [
           "2026-03-01",
           "2026-05-31"
@@ -76,18 +76,18 @@
     "Homa Bay,Kisumu|def|def": {
       "counties": {
         "Kisumu": {
-          "flood": 0.879,
-          "rainfall": 0.842,
-          "elevation": 0.125
+          "flood": 0.383,
+          "rainfall": 1.0,
+          "elevation": 0.384
         },
-        "Homa Bay": {
-          "flood": 0.82,
-          "rainfall": 0.008,
-          "elevation": 0.235
+        "HomaBay": {
+          "flood": 0.358,
+          "rainfall": 1.0,
+          "elevation": 0.373
         }
       },
       "meta": {
-        "source": "fallback",
+        "source": "earth-engine",
         "dates": [
           "2026-03-01",
           "2026-05-31"
@@ -97,33 +97,49 @@
     "ALL|def|def": {
       "counties": {
         "Kisumu": {
-          "flood": 0.879,
-          "rainfall": 0.842,
-          "elevation": 0.125
+          "flood": 0.383,
+          "rainfall": 1.0,
+          "elevation": 0.384
         },
-        "Homa Bay": {
-          "flood": 0.82,
-          "rainfall": 0.008,
-          "elevation": 0.235
+        "HomaBay": {
+          "flood": 0.358,
+          "rainfall": 1.0,
+          "elevation": 0.373
         },
         "Siaya": {
-          "flood": 0.007,
-          "rainfall": 0.574,
-          "elevation": 0.296
+          "flood": 0.348,
+          "rainfall": 1.0,
+          "elevation": 0.394
         },
         "Busia": {
-          "flood": 0.71,
-          "rainfall": 0.532,
-          "elevation": 0.582
+          "flood": 0.355,
+          "rainfall": 1.0,
+          "elevation": 0.392
         },
         "Migori": {
-          "flood": 0.436,
-          "rainfall": 0.346,
-          "elevation": 0.462
+          "flood": 0.366,
+          "rainfall": 0.949,
+          "elevation": 0.327
         }
       },
       "meta": {
-        "source": "fallback",
+        "source": "earth-engine",
+        "dates": [
+          "2026-03-01",
+          "2026-05-31"
+        ]
+      }
+    },
+    "Kisumu|def|def": {
+      "counties": {
+        "Kisumu": {
+          "flood": 0.383,
+          "rainfall": 1.0,
+          "elevation": 0.384
+        }
+      },
+      "meta": {
+        "source": "earth-engine",
         "dates": [
           "2026-03-01",
           "2026-05-31"
@@ -135,24 +151,24 @@
     "Busia,Homa Bay,Kisumu,Migori,Siaya": {
       "counties": {
         "Kisumu": {
-          "exposed_population": 1713730,
+          "exposed_population": 1069563,
           "population_normalized": 1.0
         },
-        "Homa Bay": {
-          "exposed_population": 880753,
-          "population_normalized": 0.514
+        "HomaBay": {
+          "exposed_population": 1026723,
+          "population_normalized": 0.96
         },
         "Siaya": {
-          "exposed_population": 1200641,
-          "population_normalized": 0.701
+          "exposed_population": 934083,
+          "population_normalized": 0.873
         },
         "Busia": {
-          "exposed_population": 1412499,
-          "population_normalized": 0.824
+          "exposed_population": 827427,
+          "population_normalized": 0.774
         },
         "Migori": {
-          "exposed_population": 1065155,
-          "population_normalized": 0.622
+          "exposed_population": 1014430,
+          "population_normalized": 0.948
         }
       },
       "meta": {
@@ -163,12 +179,12 @@
     "Kisumu,Siaya": {
       "counties": {
         "Kisumu": {
-          "exposed_population": 1713730,
+          "exposed_population": 1069563,
           "population_normalized": 1.0
         },
         "Siaya": {
-          "exposed_population": 1200641,
-          "population_normalized": 0.701
+          "exposed_population": 934083,
+          "population_normalized": 0.873
         }
       },
       "meta": {
@@ -179,7 +195,7 @@
     "Busia": {
       "counties": {
         "Busia": {
-          "exposed_population": 1412499,
+          "exposed_population": 827427,
           "population_normalized": 1.0
         }
       },
@@ -191,12 +207,12 @@
     "Homa Bay,Kisumu": {
       "counties": {
         "Kisumu": {
-          "exposed_population": 1713730,
+          "exposed_population": 1069563,
           "population_normalized": 1.0
         },
-        "Homa Bay": {
-          "exposed_population": 880753,
-          "population_normalized": 0.514
+        "HomaBay": {
+          "exposed_population": 1026723,
+          "population_normalized": 0.96
         }
       },
       "meta": {
@@ -207,24 +223,36 @@
     "ALL": {
       "counties": {
         "Kisumu": {
-          "exposed_population": 1713730,
+          "exposed_population": 1069563,
           "population_normalized": 1.0
         },
-        "Homa Bay": {
-          "exposed_population": 880753,
-          "population_normalized": 0.514
+        "HomaBay": {
+          "exposed_population": 1026723,
+          "population_normalized": 0.96
         },
         "Siaya": {
-          "exposed_population": 1200641,
-          "population_normalized": 0.701
+          "exposed_population": 934083,
+          "population_normalized": 0.873
         },
         "Busia": {
-          "exposed_population": 1412499,
-          "population_normalized": 0.824
+          "exposed_population": 827427,
+          "population_normalized": 0.774
         },
         "Migori": {
-          "exposed_population": 1065155,
-          "population_normalized": 0.622
+          "exposed_population": 1014430,
+          "population_normalized": 0.948
+        }
+      },
+      "meta": {
+        "source": "worldpop",
+        "year": 2020
+      }
+    },
+    "Kisumu": {
+      "counties": {
+        "Kisumu": {
+          "exposed_population": 1069563,
+          "population_normalized": 1.0
         }
       },
       "meta": {

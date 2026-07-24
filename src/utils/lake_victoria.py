@@ -130,3 +130,143 @@ def describe_study_area() -> str:
         "Migori counties, including the Winam Gulf, the Kano plains, and the "
         "Nyando and Nzoia river outlets"
     )
+
+
+# ---------------------------------------------------------------------------
+# Basin membership / scope guardrail
+# ---------------------------------------------------------------------------
+# WHY THIS EXISTS
+# ---------------
+# The agent was asked to compare Nakuru with Siaya and ranked NAKURU as higher
+# flood risk. That is wrong in a way the scoring model could not see: Nakuru is
+# in the Rift Valley, ~173 km away, and drains to Lake Nakuru — a completely
+# different basin. It scored high only because it has ~2 million people, and
+# the model treats population as exposure without asking whether a Lake
+# Victoria flood could ever reach those people.
+#
+# Two failure modes this guards against:
+#   1. Out-of-basin counties being ranked as if they were lakeside.
+#   2. Radar flood signal picking up OTHER permanent water bodies (Lake Nakuru,
+#      Lake Naivasha, Lake Baringo) and reporting them as flooding.
+#
+# Distances are computed from the Winam Gulf centre, the hydrological heart of
+# the Kenyan Lake Victoria basin.
+
+# Approximate distance (km) beyond which a county cannot plausibly be affected
+# by Lake Victoria flooding. Basin counties sit at ~35-82 km.
+BASIN_DISTANCE_LIMIT_KM: float = 120.0
+
+# Counties in the wider Lake Victoria catchment: not lakeside, but their rivers
+# (Nzoia, Yala, Nyando, Sondu-Miriu) drain INTO the lake, so they have a real
+# hydrological connection worth acknowledging.
+CATCHMENT_COUNTIES: list[str] = [
+    "Kakamega", "Vihiga", "Bungoma", "Kisii", "Nyamira", "Kericho", "Bomet",
+    "Nandi", "Trans Nzoia", "Narok",
+]
+
+
+def distance_to_lake_km(county: str) -> float | None:
+    """
+    Great-circle-ish distance (km) from a county centroid to the Winam Gulf.
+
+    Returns None if the county centroid is unknown.
+    """
+    import math
+
+    from . import geo
+
+    centre = geo.county_centroid(county)
+    if centre is None:
+        return None
+    lon, lat = centre
+    gulf_lon, gulf_lat = LAKE_VICTORIA_CENTER_LON, LAKE_VICTORIA_CENTER_LAT
+    dx = (lon - gulf_lon) * 111.0 * math.cos(math.radians((lat + gulf_lat) / 2))
+    dy = (lat - gulf_lat) * 111.0
+    return round(math.sqrt(dx * dx + dy * dy), 1)
+
+
+# Winam Gulf centre (exact, GeoNames ID 178104) used for distance measurement.
+LAKE_VICTORIA_CENTER_LAT: float = -0.26721
+LAKE_VICTORIA_CENTER_LON: float = 34.5336
+
+
+def basin_membership(county: str) -> dict[str, Any]:
+    """
+    Classify a county's relationship to the Lake Victoria basin.
+
+    Returns a dict with:
+        membership : "basin" | "catchment" | "outside"
+        distance_km: distance from the Winam Gulf
+        in_scope   : True only for basin counties
+        note       : a sentence the agent should surface to the user
+
+    This is the guardrail that stops the agent silently ranking a Rift Valley
+    county as a Lake Victoria flood risk.
+    """
+    name = (county or "").strip()
+    distance = distance_to_lake_km(name)
+
+    def _n(x: str) -> str:
+        return x.lower().replace(" ", "").replace("-", "")
+
+    if any(_n(name) == _n(c) for c in BASIN_COUNTIES):
+        return {
+            "county": name,
+            "membership": "basin",
+            "in_scope": True,
+            "distance_km": distance,
+            "note": f"{name} is a Lake Victoria basin county.",
+        }
+
+    if any(_n(name) == _n(c) for c in CATCHMENT_COUNTIES):
+        return {
+            "county": name,
+            "membership": "catchment",
+            "in_scope": False,
+            "distance_km": distance,
+            "note": (
+                f"{name} is NOT a lakeside county, but it lies in the wider "
+                f"Lake Victoria catchment — its rivers drain into the lake. "
+                f"Flood risk there is riverine/upstream, not lake-driven, and "
+                f"is not directly comparable to lakeside flood risk."
+            ),
+        }
+
+    far = distance is not None and distance > BASIN_DISTANCE_LIMIT_KM
+    return {
+        "county": name,
+        "membership": "outside",
+        "in_scope": False,
+        "distance_km": distance,
+        "note": (
+            f"{name} is OUTSIDE the Lake Victoria basin"
+            + (f" (~{distance:.0f} km from the Winam Gulf)" if distance else "")
+            + ". It is in a different drainage basin, so it cannot be affected "
+            "by Lake Victoria flooding. Any flood risk there has different "
+            "causes (local rivers, urban drainage, or other lakes) and this "
+            "tool is not calibrated for it. Do not present its score as "
+            "comparable to lakeside counties."
+            if far
+            else (
+                f"{name} is not one of the five Lake Victoria basin counties. "
+                "Its score is not calibrated for lake-driven flooding."
+            )
+        ),
+    }
+
+
+def classify_scope(counties: list[str]) -> dict[str, Any]:
+    """
+    Classify a list of counties and summarise scope warnings for the agent.
+
+    Used by the risk tools so that any out-of-basin county is flagged in the
+    output metadata and cannot be silently ranked as a lakeside flood risk.
+    """
+    results = [basin_membership(c) for c in counties or []]
+    out_of_scope = [r for r in results if not r["in_scope"]]
+    return {
+        "counties": results,
+        "all_in_basin": not out_of_scope,
+        "out_of_scope": [r["county"] for r in out_of_scope],
+        "warnings": [r["note"] for r in out_of_scope],
+    }

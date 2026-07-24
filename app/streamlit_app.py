@@ -177,6 +177,24 @@ def render_map(
         # Render the folium map via its HTML representation.
         html = risk_map._repr_html_()  # folium Map supports this
         st.components.v1.html(html, height=620, scrolling=False)
+
+        # Offer the map as a standalone page the user can open full-screen in
+        # a new browser tab (in addition to the in-map fullscreen button).
+        try:
+            st.download_button(
+                label="🗺️  Open full map in a new tab (download HTML)",
+                data=html,
+                file_name="lake_victoria_risk_map.html",
+                mime="text/html",
+                help=(
+                    "Downloads a standalone map page. Open it in your browser "
+                    "for an unconstrained, full-window view. You can also use "
+                    "the expand button at the top-left of the map above."
+                ),
+                use_container_width=True,
+            )
+        except Exception as exc:
+            logger.debug("Map download button failed: %s", exc)
     except Exception as exc:
         logger.warning("Map rendering failed: %s", exc)
         st.info(f"Map could not be rendered: {exc}")
@@ -192,6 +210,20 @@ def render_bar_chart(ranking: list[dict[str, Any]], config: dict[str, Any]) -> N
             st.pyplot(fig)
     except Exception as exc:
         logger.debug("Bar chart rendering failed: %s", exc)
+
+
+def render_subcounty_bar_chart(
+    sub_ranking: list[dict[str, Any]], config: dict[str, Any]
+) -> None:
+    """Render the top-N sub-county risk bar chart."""
+    try:
+        top_n = int(config.get("ui", {}).get("chart_top_n", 5)) if config else 5
+        fig = viz.build_subcounty_bar_chart(sub_ranking, top_n=top_n)
+        if fig is not None:
+            st.subheader("Top sub-counties by risk score")
+            st.pyplot(fig)
+    except Exception as exc:
+        logger.debug("Sub-county bar chart failed: %s", exc)
 
 
 def render_execution_log(result: Any) -> None:
@@ -322,6 +354,13 @@ def main() -> None:
         # Sub-county results (when the user asked about sub-counties).
         sub_block = result.collected.get("get_subcounty_risk", {})
         sub_ranking = sub_block.get("ranking") if isinstance(sub_block, dict) else None
+
+        # If the sub-county tool ran but produced nothing, say WHY.
+        if isinstance(sub_block, dict) and not sub_ranking and sub_block.get("meta"):
+            note = sub_block["meta"].get("note")
+            if note:
+                st.warning(f"**Sub-county data unavailable.** {note}")
+
         if sub_ranking:
             st.subheader("Sub-county risk ranking")
             meta = sub_block.get("meta", {})
@@ -349,7 +388,12 @@ def main() -> None:
             with map_col:
                 render_map(ranking or [], config, sub_ranking=sub_ranking)
             with chart_col:
-                if ranking:
+                # Sub-county questions get a sub-county chart; county
+                # questions get the county chart. Previously a sub-county
+                # question produced no chart at all.
+                if sub_ranking:
+                    render_subcounty_bar_chart(sub_ranking, config)
+                elif ranking:
                     render_bar_chart(ranking, config)
 
         render_execution_log(result)

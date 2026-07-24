@@ -56,7 +56,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from ..utils import geo
+from ..utils import geo, lake_victoria
 from . import earth_engine, population
 
 logger = logging.getLogger(__name__)
@@ -172,10 +172,15 @@ def compute_risk_score(
         }
         score = round(sum(contributions.values()), 4)
 
+        scope = lake_victoria.basin_membership(name)
         ranking.append(
             {
                 "county": name,
                 "risk_score": score,
+                "basin_membership": scope["membership"],
+                "in_basin": scope["in_scope"],
+                "distance_to_lake_km": scope["distance_km"],
+                "scope_note": None if scope["in_scope"] else scope["note"],
                 "components": {
                     "flood": flood,
                     "rainfall": rainfall,
@@ -187,13 +192,37 @@ def compute_risk_score(
             }
         )
 
-    # Sort high-risk first; tie-break alphabetically for stable output.
-    ranking.sort(key=lambda r: (-r["risk_score"], r["county"]))
+    # Sort in-basin counties FIRST, then by risk score.
+    #
+    # WHY: a Rift Valley county like Nakuru (~173 km away, different drainage
+    # basin) was out-ranking lakeside Siaya purely because it has ~2 million
+    # people. Population is only *exposure* if a Lake Victoria flood can
+    # actually reach those people. Out-of-basin counties are therefore listed
+    # below every in-basin county and clearly labelled, instead of being
+    # presented as the highest Lake Victoria flood risk.
+    ranking.sort(
+        key=lambda r: (not r.get("in_basin", True), -r["risk_score"], r["county"])
+    )
+
+    scope_summary = lake_victoria.classify_scope([r["county"] for r in ranking])
 
     return {
         "ranking": ranking,
         "weights": weights,
         "meta": {
+            "study_area": "Kenyan Lake Victoria basin",
+            "scope": scope_summary,
+            "scope_warning": (
+                None
+                if scope_summary["all_in_basin"]
+                else (
+                    "SCOPE WARNING: "
+                    + "; ".join(scope_summary["warnings"])
+                    + " Scores for these counties are NOT comparable to "
+                      "lakeside counties and must not be presented as Lake "
+                      "Victoria flood risk."
+                )
+            ),
             "sources": {
                 "layers": layers.get("meta", {}) if isinstance(layers, dict) else {},
                 "population": population_data.get("meta", {})

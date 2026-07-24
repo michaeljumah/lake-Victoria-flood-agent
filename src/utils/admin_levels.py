@@ -205,13 +205,31 @@ def prettify(name: str) -> str:
 def _load_subcounties_gdf() -> Any | None:
     """Load and cache the sub-county GeoDataFrame (GADM level 2)."""
     if not _GPD_AVAILABLE:
-        logger.warning("geopandas unavailable; sub-county data cannot load.")
+        logger.error(
+            "geopandas is NOT installed — sub-county data cannot load, so "
+            "sub-county questions cannot be answered. "
+            "Fix with:  pip install geopandas"
+        )
         return None
     path = _subcounties_path()
     if not os.path.exists(path):
-        logger.warning(
-            "Sub-county boundaries not found at %s. Download GADM level 2 for "
-            "Kenya and save it there to enable sub-county answers.", path
+        # Help the user spot the common "double extension" mistake, e.g.
+        # kenya_subcounties.geojson.json saved straight from the browser.
+        folder = os.path.dirname(path)
+        nearby = []
+        if os.path.isdir(folder):
+            nearby = [f for f in os.listdir(folder) if "subcount" in f.lower()]
+        hint = ""
+        if nearby:
+            hint = (
+                f" Found similarly named file(s) in data/: {nearby}. "
+                f"Rename to exactly 'kenya_subcounties.geojson' "
+                f"(no extra .json on the end)."
+            )
+        logger.error(
+            "Sub-county boundaries NOT found at %s.%s "
+            "Download GADM level 2 for Kenya if you have not already.",
+            path, hint
         )
         return None
     try:

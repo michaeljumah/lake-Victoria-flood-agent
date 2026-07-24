@@ -210,6 +210,12 @@ def build_system_prompt() -> str:
         "NEVER answer such a question with county names from "
         "compute_risk_score. Use compute_risk_score only when the question is "
         "about counties or does not specify a level.\n\n"
+        "8. STUDY-AREA SCOPE. This tool models LAKE VICTORIA flood risk only. "
+        "The basin counties are Kisumu, Homa Bay, Siaya, Busia and Migori. If "
+        "the user names a county outside the basin (e.g. Nakuru, Nairobi, "
+        "Mombasa, Turkana), still pass it in 'counties' so the tools can "
+        "compute and flag it — the tools attach a scope warning. Never assume "
+        "an out-of-basin county is lakeside.\n\n"
         "OUTPUT FORMAT (STRICT):\n"
         "Respond with a SINGLE JSON object and nothing else. No markdown, no "
         "code fences, no commentary. The schema is:\n"
@@ -363,33 +369,64 @@ def validate_plan(plan: dict[str, Any]) -> dict[str, Any]:
 def _fallback_plan(question: str) -> dict[str, Any]:
     """
     Build a safe default plan used when the model is unavailable or its output
-    cannot be salvaged. Covers the most common intent: assess and rank risk.
+    cannot be salvaged.
+
+    IMPORTANT: this is level-aware. If the question asks about sub-counties,
+    wards, villages, towns or flood features, the fallback plan calls
+    get_subcounty_risk — otherwise a fallback would answer a sub-county
+    question with county names, which is exactly the error we are fixing.
     """
     logger.warning("Using fallback plan for question: %s", question)
-    return {
-        "steps": [
+
+    # Detect the administrative level without hard-depending on the utils
+    # module (keeps the planner importable in isolation).
+    try:
+        from ..utils.admin_levels import detect_admin_level, LEVEL_COUNTY
+
+        level = detect_admin_level(question)
+    except Exception:  # pragma: no cover
+        level, LEVEL_COUNTY = "county", "county"
+
+    steps: list[dict[str, Any]] = [
+        {
+            "tool": "search_knowledge",
+            "reason": "Retrieve Kenyan context relevant to the question.",
+            "parameters": {"query": question, "top_k": 6},
+        },
+        {
+            "tool": "get_earth_engine_layers",
+            "reason": "Fetch flood, rainfall and elevation layers for the basin.",
+            "parameters": {},
+        },
+        {
+            "tool": "get_population_exposure",
+            "reason": "Estimate population exposed to the hazard.",
+            "parameters": {},
+        },
+    ]
+
+    if level != LEVEL_COUNTY:
+        # Sub-county / ward / village / town / feature questions.
+        steps.append(
             {
-                "tool": "search_knowledge",
-                "reason": "Retrieve Kenyan climate context relevant to the question.",
-                "parameters": {"query": question, "top_k": 4},
-            },
-            {
-                "tool": "get_earth_engine_layers",
-                "reason": "Fetch flood, rainfall and elevation layers for all counties.",
+                "tool": "get_subcounty_risk",
+                "reason": (
+                    f"The question asks at '{level}' level, so rank "
+                    f"sub-counties rather than counties."
+                ),
                 "parameters": {},
-            },
-            {
-                "tool": "get_population_exposure",
-                "reason": "Estimate population exposed to the hazard by county.",
-                "parameters": {},
-            },
+            }
+        )
+    else:
+        steps.append(
             {
                 "tool": "compute_risk_score",
                 "reason": "Combine signals into a transparent, ranked risk score.",
                 "parameters": {},
-            },
-        ]
-    }
+            }
+        )
+
+    return {"steps": steps}
 
 
 # ---------------------------------------------------------------------------

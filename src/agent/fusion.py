@@ -162,7 +162,16 @@ FUSION_SYSTEM_PROMPT = (
     "sub-counties and sub-county data is present, name sub-counties — never "
     "substitute county names. If the requested level is unavailable, say so "
     "explicitly and state the level you are actually reporting.\n"
-    "9. CITE DIVERSELY. Draw on every distinct source provided, not one "
+    "9. STUDY-AREA SCOPE — critical for correctness. This tool models LAKE "
+    "VICTORIA flood risk. Only Kisumu, Homa Bay, Siaya, Busia and Migori are "
+    "basin counties. If the data contains a county marked in_basin=false or "
+    "membership 'outside'/'catchment', you MUST say clearly that it is not in "
+    "the Lake Victoria basin, give its distance from the lake, and explain "
+    "that its score is NOT comparable — a county in another drainage basin "
+    "cannot be flooded by Lake Victoria no matter how large its population. "
+    "Never present an out-of-basin county as the highest Lake Victoria flood "
+    "risk. Surface any scope_warning in the metadata prominently.\n"
+    "10. CITE DIVERSELY. Draw on every distinct source provided, not one "
     "document. When several sources support a point, cite them together, and "
     "cite the satellite/population data as evidence in its own right.\n"
 )
@@ -174,6 +183,8 @@ def _build_context_block(
     ranking: list[dict[str, Any]],
     population: dict[str, Any],
     layers: dict[str, Any],
+    sub: dict[str, Any] | None = None,
+    scope_warning: str | None = None,
 ) -> str:
     """Render all collected data into a compact text context for the model."""
     parts: list[str] = [f"USER QUESTION:\n{question}\n"]
@@ -190,7 +201,11 @@ def _build_context_block(
     except Exception:
         pass
 
-    sub = _extract_subcounty(collected)
+    # Scope warnings (out-of-basin counties) must be impossible to miss.
+    if scope_warning:
+        parts.append("*** " + scope_warning + " ***")
+
+    sub = sub or {}
     if sub.get("ranking"):
         parts.append(
             "RANKED SUB-COUNTY RISK SCORES (use THESE for sub-county "
@@ -201,7 +216,10 @@ def _build_context_block(
 
     if ranking:
         parts.append(
-            "RANKED RISK SCORES (per county, higher = more at risk):\n"
+            "RANKED RISK SCORES (per county, higher = more at risk).\n"
+            "NOTE the 'in_basin', 'basin_membership' and 'distance_to_lake_km' "
+            "fields — any county with in_basin=false is OUTSIDE the Lake "
+            "Victoria basin and its score is not comparable:\n"
             + json.dumps(ranking, indent=2)
         )
     else:
@@ -241,6 +259,8 @@ def _deterministic_answer(
     knowledge: list[dict[str, Any]],
     ranking: list[dict[str, Any]],
     population: dict[str, Any],
+    sub: dict[str, Any] | None = None,
+    scope_warning: str | None = None,
 ) -> str:
     """
     Compose a readable answer directly from collected data, used when Gemini
@@ -248,6 +268,30 @@ def _deterministic_answer(
     offline or under API failure.
     """
     lines: list[str] = []
+
+    if scope_warning:
+        lines.append(f"⚠️  {scope_warning}\n")
+
+    # Prefer sub-county results when they exist — answering a sub-county
+    # question with counties is exactly the error this fixes.
+    sub = sub or {}
+    sub_rank = sub.get("ranking") or []
+    if sub_rank:
+        lines.append("Sub-counties ranked by flood risk (highest first):")
+        for entry in sub_rank[:8]:
+            feats = ", ".join(entry.get("flood_features", []))
+            piece = (
+                f"- {entry.get('subcounty')} ({entry.get('county')} County): "
+                f"risk {entry.get('risk_score')}, "
+                f"~{int(entry.get('exposed_population', 0)):,} people exposed"
+            )
+            if feats:
+                piece += f" — {feats}"
+            lines.append(piece)
+        meta = sub.get("meta", {})
+        if meta.get("population_method"):
+            lines.append(f"\nMethod note: {meta['population_method']}")
+        lines.append("")
 
     if ranking:
         top = ranking[: min(5, len(ranking))]
@@ -331,8 +375,15 @@ def fuse_answer(
     population = _extract_population(collected)
     layers = _extract_layers(collected)
 
+    subcounty = _extract_subcounty(collected)
+
+    # Pull any study-area scope warning (e.g. an out-of-basin county).
+    rank_block = _as_single(collected.get("compute_risk_score")) or {}
+    scope_warning = (rank_block.get("meta", {}) or {}).get("scope_warning")
+
     context_block = _build_context_block(
-        question, knowledge, ranking, population, layers
+        question, knowledge, ranking, population, layers,
+        sub=subcounty, scope_warning=scope_warning,
     )
     model_name = _get_model_name(config)
 
@@ -358,7 +409,10 @@ def fuse_answer(
 
     except Exception as exc:
         logger.error("Fusion model call failed (%s); using deterministic answer.", exc)
-        return _deterministic_answer(question, knowledge, ranking, population)
+        return _deterministic_answer(
+            question, knowledge, ranking, population,
+            sub=subcounty, scope_warning=scope_warning,
+        )
 
 
 if __name__ == "__main__":
