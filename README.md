@@ -111,8 +111,8 @@ lake-victoria-flood-agent/
 Requires **Python 3.11+**.
 
 ```bash
-git clone https://github.com/johnmwangimegwe/lake-victoria-flood-agent.git
-cd lake-victoria-flood-agent
+git clone https://github.com/johnmwangimegwe/lake-Victoria-flood-agent.git
+cd lake-Victoria-flood-agent 
 pip install -r requirements.txt
 # On Colab / Debian / Ubuntu you may need:
 # pip install -r requirements.txt --break-system-packages
