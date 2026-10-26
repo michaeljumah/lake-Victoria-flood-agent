@@ -131,7 +131,7 @@ GOOGLE_API_KEY=your-gemini-api-key
 EE_PROJECT_ID=your-earthengine-project-id
 ```
 
-Both are optional - without them the agent runs in deterministic fallback mode -
+Both are optional - without them, the agent runs in deterministic fallback mode -
 but you need them for live Gemini reasoning and real satellite data.
 
 ### **Gemini setup**
@@ -145,7 +145,7 @@ Gemini 3.5 Flash; the RAG index uses Gemini embeddings when the key is present
 
 1. Sign up for Earth Engine and create/enable a Cloud project:
    <https://code.earthengine.google.com/>
-2. Put the project id in `.env` as `EE_PROJECT_ID`.
+2. Put the project ID in `.env` as `EE_PROJECT_ID`.
 3. Authenticate once:
 
 ```bash
@@ -213,7 +213,7 @@ contributions that sum exactly to the total. Tune the weights in `config.yaml`.
 ## **Disclaimer**
 
 This is a **decision-support** tool, not an emergency-response system. When run
-without Earth Engine or a Gemini key it uses deterministic fallback values that
+without Earth Engine or a Gemini key, it uses deterministic fallback values that
 are **not** real measurements. Always validate against official sources such as
 the Kenya Meteorological Department and the National Drought Management Authority.
 
@@ -221,3 +221,4 @@ the Kenya Meteorological Department and the National Drought Management Authorit
 
 Source code: **MIT** (see `LICENSE`). Knowledge-base documents retain their own
 licenses - see `knowledge/sources.md`.
+
