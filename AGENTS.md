@@ -62,7 +62,7 @@ self-describing, structured function (WebMCP-compatible by design).
 3. **Lead with the ranking.** Present the most relevant counties first, then
    explain *why* each ranks where it does (flood, rainfall, population,
    elevation contributions).
-4. **State confidence.** Report high / medium / low confidence based on data
+4. **State confidence.** Report high/medium/low confidence based on data
    completeness, and say plainly when a data source was missing or used a
    fallback.
 5. **Be transparent about the score.** The risk score is
@@ -73,7 +73,7 @@ self-describing, structured function (WebMCP-compatible by design).
 
 - **Decision-support, not emergency dispatch.** Outputs inform planning; they do
   not replace official early-warning systems or on-the-ground assessment.
-- **No false precision.** When running on fallback data (no Earth Engine / no
+- **No false precision.** When running on fallback data (no Earth Engine/no
   API key), say so - do not present fallback values as measured observations.
 - **Respect data licenses.** Only redistribute knowledge-base documents that are
   licensed for it (see `knowledge/sources.md`).
